@@ -416,12 +416,21 @@ def send_client_command(command: str, socket_path: Path, config_path: Path) -> i
     except FileNotFoundError:
         if command in {"notify", "notification"}:
             return send_standalone_notification(config_path)
+        if command in {"status", "s"}:
+            print_stopped_status(socket_path)
+            return 0
         print(f"samplewatch is not running; no socket at {socket_path}")
         return 1
     except ConnectionRefusedError:
+        if command in {"status", "s"}:
+            print_unreachable_status(socket_path)
+            return 1
         print(f"samplewatch socket is not accepting commands: {socket_path}")
         return 1
     except OSError as exc:
+        if command in {"status", "s"}:
+            print_unreachable_status(socket_path, str(exc))
+            return 1
         print(f"Could not contact samplewatch: {exc}")
         return 1
 
@@ -483,6 +492,7 @@ def print_settings(project_state: ProjectState, processing_state: ProcessingStat
 def print_status(config: Config, project_state: ProjectState, processing_state: ProcessingState) -> None:
     audio = processing_state.snapshot()
     print("Status:")
+    print("Backend: running")
     print(f"Project: {project_state.get()}")
     print(f"Drop folder: {config.drop_dir}")
     print(f"Samples: {config.samples_dir}")
@@ -492,6 +502,20 @@ def print_status(config: Config, project_state: ProjectState, processing_state: 
     print(f"Open Finder on launch: {'yes' if config.launch.open_finder else 'no'}")
     print(f"Notifications: {'on' if config.notifications.enabled else 'off'}")
     print(f"Log: {config.log_file}")
+
+
+def print_stopped_status(socket_path: Path) -> None:
+    print("Status:")
+    print("Backend: not running")
+    print(f"Socket: {socket_path}")
+
+
+def print_unreachable_status(socket_path: Path, detail: str | None = None) -> None:
+    print("Status:")
+    print("Backend: unreachable")
+    print(f"Socket: {socket_path}")
+    if detail:
+        print(f"Error: {detail}")
 
 
 def maybe_open_finder(config: Config, logger: logging.Logger) -> None:

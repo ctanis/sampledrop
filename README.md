@@ -218,6 +218,36 @@ Detached mode uses a local Unix socket and PID file:
 
 Alfred workflows can call the same one-shot commands, for example `samplewatch p phaseplant` or `samplewatch x`.
 
+## Alfred
+
+Build the Alfred workflow:
+
+```sh
+scripts/build_alfred_workflow.py
+```
+
+Then open:
+
+```text
+dist/Samplewatch.alfredworkflow
+```
+
+The workflow keyword is `sd`. Examples:
+
+```text
+sd status
+sd start
+sd stop
+sd phaseplant
+sd p modular
+sd lp phaseplant
+sd x
+sd d
+```
+
+Install `samplewatch` first with `scripts/install.sh`, because the Alfred workflow calls the installed `samplewatch` command.
+`status` includes whether the detached backend is running. When the detached watcher is running, `sd status` also shows a silent Notification Center summary of the backend, current project, trim, normalize, and notification settings.
+
 ## Notes
 
 - Sequence numbers are calculated from existing files in the destination day folder.
