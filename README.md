@@ -28,19 +28,34 @@ On macOS, install libsndfile first if needed:
 brew install libsndfile
 ```
 
-Install the utility from this folder:
+Install as a personal utility:
 
 ```sh
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install -e .
+scripts/install.sh
 ```
 
-Or install dependencies directly:
+This creates:
+
+```text
+~/.local/share/samplewatch/venv/
+~/bin/samplewatch -> ~/.local/share/samplewatch/venv/bin/samplewatch
+```
+
+The installer copies `samplewatch.example.toml` to `~/.samplewatch.toml` only if no config exists yet. If `~/bin` is not on your `PATH`, the installer prints the shell line to add.
+
+Upgrade from this repo:
 
 ```sh
-pip install -r requirements.txt
+scripts/upgrade.sh
 ```
+
+Uninstall the venv and symlink, while preserving config and logs:
+
+```sh
+scripts/uninstall.sh
+```
+
+For development, you can still use a repo-local venv and `pip install -e .`.
 
 ## Configure
 
