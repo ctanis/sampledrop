@@ -116,8 +116,8 @@ One-shot client commands, suitable for Alfred:
 samplewatch status
 samplewatch p modular
 samplewatch t off
-samplewatch !d
-samplewatch !x
+samplewatch d
+samplewatch x
 samplewatch notify
 samplewatch stop
 ```
@@ -143,12 +143,12 @@ normalize off
 s
 status
 notify
-!t
-!n
-!p
-!p phaseplant
-!d
-!x
+lt
+ln
+lp
+lp phaseplant
+d
+x
 q
 quit
 stop
@@ -156,14 +156,16 @@ stop
 
 `project <name>` and `p <name>` set the current project. `project` or `p` prints it. `trim` or `t` toggles trimming. `normalize`, `norm`, or `n` toggles normalizing. `trim on|off`, `t on|off`, `normalize on|off`, and `n on|off` set those options explicitly. `status` or `s` prints the active configuration. `notify` sends a test Notification Center popup. `quit` or `q` exits foreground interactive mode. `stop` terminates a detached watcher. State-changing commands print the current project, trim, and normalize settings immediately.
 
-Bang commands operate on the last successfully saved file:
+Last-file and Finder commands:
 
-- `!t` trims the last saved file.
-- `!n` normalizes the last saved file.
-- `!p` renames the last saved file to the current project sequence.
-- `!p <name>` renames the last saved file to that project sequence and makes it the current project for future files.
-- `!d` reopens the drop folder Finder window.
-- `!x` reveals the last saved file in Finder.
+- `lt` trims the last saved file.
+- `ln` normalizes the last saved file.
+- `lp` renames the last saved file to the current project sequence.
+- `lp <name>` renames the last saved file to that project sequence and makes it the current project for future files.
+- `d` reopens the drop folder Finder window.
+- `x` reveals the last saved file in Finder.
+
+The older `!t`, `!n`, `!p`, `!d`, and `!x` forms also work inside samplewatch's interactive prompt. At a shell prompt, prefer the aliases above because bash treats `!` as history expansion.
 
 ## Output
 
@@ -214,7 +216,7 @@ Detached mode uses a local Unix socket and PID file:
 ~/.samplewatch.pid
 ```
 
-Alfred workflows can call the same one-shot commands, for example `samplewatch p phaseplant` or `samplewatch !x`.
+Alfred workflows can call the same one-shot commands, for example `samplewatch p phaseplant` or `samplewatch x`.
 
 ## Notes
 

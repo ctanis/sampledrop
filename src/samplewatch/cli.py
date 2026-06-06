@@ -224,7 +224,7 @@ def print_startup(config: Config, project_state: ProjectState, processing_state:
     print_settings(project_state, processing_state)
     print(
         "Commands: project/p <name>, trim/t [on|off], normalize/n [on|off], "
-        "status/s, notify, quit/q, stop, !t, !n, !p [name], !d, !x"
+        "status/s, notify, quit/q, stop, lt, ln, lp [name], d, x"
     )
 
 
@@ -311,15 +311,15 @@ def execute_command(command: str, runtime: Runtime, allow_quit: bool) -> bool:
         runtime.processing_state.set_normalize(parse_enabled(command.removeprefix("n ")))
         print_settings(runtime.project_state, runtime.processing_state)
         return False
-    if command == "!t":
+    if command in {"!t", "lt"}:
         runtime.processor.trim_last()
         print_settings(runtime.project_state, runtime.processing_state)
         return False
-    if command == "!n":
+    if command in {"!n", "ln"}:
         runtime.processor.normalize_last()
         print_settings(runtime.project_state, runtime.processing_state)
         return False
-    if command == "!p":
+    if command in {"!p", "lp"}:
         runtime.processor.rename_last()
         print_settings(runtime.project_state, runtime.processing_state)
         return False
@@ -327,11 +327,15 @@ def execute_command(command: str, runtime: Runtime, allow_quit: bool) -> bool:
         runtime.processor.rename_last(command.removeprefix("!p "))
         print_settings(runtime.project_state, runtime.processing_state)
         return False
-    if command == "!d":
+    if command.startswith("lp "):
+        runtime.processor.rename_last(command.removeprefix("lp "))
+        print_settings(runtime.project_state, runtime.processing_state)
+        return False
+    if command in {"!d", "d"}:
         open_finder_drop(runtime.config, runtime.logger)
         print_settings(runtime.project_state, runtime.processing_state)
         return False
-    if command == "!x":
+    if command in {"!x", "x"}:
         reveal_last_product(runtime.processor, runtime.logger)
         print_settings(runtime.project_state, runtime.processing_state)
         return False
@@ -346,7 +350,7 @@ def execute_command(command: str, runtime: Runtime, allow_quit: bool) -> bool:
 
     print(
         "Unknown command. Try: project/p <name>, trim/t [on|off], "
-        "normalize/n [on|off], status/s, notify, stop, !t, !n, !p [name], !d, !x"
+        "normalize/n [on|off], status/s, notify, stop, lt, ln, lp [name], d, x"
     )
     return False
 
