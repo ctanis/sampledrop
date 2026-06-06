@@ -94,11 +94,13 @@ class SampleProcessor:
         project_state: ProjectState,
         processing_state: ProcessingState,
         logger: logging.Logger,
+        notify: Callable[[str, str], None] | None = None,
     ) -> None:
         self.config = config
         self.project_state = project_state
         self.processing_state = processing_state
         self.logger = logger
+        self.notify = notify or (lambda _title, _message: None)
         self.audio = AudioProcessor()
         self.sequences = SequenceStore(config.samples_dir)
         self._seen: set[Path] = set()
@@ -140,6 +142,7 @@ class SampleProcessor:
                     result.normalized,
                     result.duration_sec,
                 )
+                self.notify("Sample saved", f"{day}/{destination.name}")
         except Exception:
             if "temp_destination" in locals():
                 temp_destination.unlink(missing_ok=True)
@@ -147,6 +150,7 @@ class SampleProcessor:
                 self._seen.discard(source)
             self.logger.exception("failed source=%s", source)
             print(f"Error processing {source.name}; original left in place.")
+            self.notify("Samplewatch error", f"Could not process {source.name}")
 
     def trim_last(self) -> None:
         options = replace(self.config.audio, trim=True, normalize=False)
@@ -172,6 +176,7 @@ class SampleProcessor:
             self.logger.info("renamed-last source=%s destination=%s", source, destination)
             print("Renamed last:")
             print(f"{destination.parent.name}/{destination.name}")
+            self.notify("Sample renamed", f"{destination.parent.name}/{destination.name}")
             return destination
 
     def last_path(self) -> Path:
@@ -195,11 +200,13 @@ class SampleProcessor:
                     result.duration_sec,
                 )
                 self._print_last_action(label, source, result)
+                self.notify(label, f"{source.parent.name}/{source.name}")
                 return result
             except Exception:
                 temp_destination.unlink(missing_ok=True)
                 self.logger.exception("failed-last-action path=%s", source)
                 print(f"Error updating last file: {source.name}")
+                self.notify("Samplewatch error", f"Could not update {source.name}")
                 return None
 
     def _require_last_path(self) -> Path:

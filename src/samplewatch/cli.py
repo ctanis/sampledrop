@@ -34,6 +34,27 @@ class Runtime:
     processing_state: ProcessingState
     processor: SampleProcessor
     logger: logging.Logger
+    notifier: Notifier
+
+
+class Notifier:
+    def __init__(self, enabled: bool, logger: logging.Logger) -> None:
+        self.enabled = enabled
+        self.logger = logger
+
+    def send(self, title: str, message: str) -> bool:
+        if not self.enabled:
+            return False
+        script = (
+            f'display notification "{_applescript_string(message)}" '
+            f'with title "{_applescript_string(title)}"'
+        )
+        try:
+            subprocess.run(["osascript", "-e", script], check=True, capture_output=True, text=True)
+            return True
+        except Exception:
+            self.logger.exception("failed notification title=%s message=%s", title, message)
+            return False
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -45,7 +66,7 @@ def main(argv: list[str] | None = None) -> int:
 
     command = " ".join(args.command).strip()
     if command:
-        return send_client_command(command, args.socket.expanduser())
+        return send_client_command(command, args.socket.expanduser(), config_path)
 
     return run_watcher(config_path, args.socket.expanduser(), args.pid.expanduser(), interactive=not args.daemon)
 
@@ -124,6 +145,7 @@ def run_watcher(config_path: Path, socket_path: Path, pid_path: Path, interactiv
     config.log_file.parent.mkdir(parents=True, exist_ok=True)
 
     logger = setup_logging(config.log_file)
+    notifier = Notifier(config.notifications.enabled, logger)
     runtime = Runtime(
         config_path=config_path,
         config=config,
@@ -131,8 +153,15 @@ def run_watcher(config_path: Path, socket_path: Path, pid_path: Path, interactiv
         processing_state=ProcessingState(config.audio),
         processor=None,  # type: ignore[arg-type]
         logger=logger,
+        notifier=notifier,
     )
-    runtime.processor = SampleProcessor(config, runtime.project_state, runtime.processing_state, logger)
+    runtime.processor = SampleProcessor(
+        config,
+        runtime.project_state,
+        runtime.processing_state,
+        logger,
+        notify=notifier.send,
+    )
 
     maybe_open_finder(config, logger)
 
@@ -161,6 +190,7 @@ def run_watcher(config_path: Path, socket_path: Path, pid_path: Path, interactiv
         print_startup(config, runtime.project_state, runtime.processing_state)
     else:
         logger.info("daemon started socket=%s pid=%s", socket_path, pid_path)
+        notifier.send("Samplewatch running", f"Watching {config.drop_dir}")
 
     try:
         if interactive:
@@ -181,6 +211,8 @@ def run_watcher(config_path: Path, socket_path: Path, pid_path: Path, interactiv
         save_exit_state(config_path, config, runtime.project_state, runtime.processing_state, logger)
         cleanup_runtime_files(socket_path, pid_path)
         logger.info("stopped")
+        if not interactive:
+            notifier.send("Samplewatch stopped", "Watcher shut down cleanly")
         if interactive:
             print("samplewatch stopped")
 
@@ -192,7 +224,7 @@ def print_startup(config: Config, project_state: ProjectState, processing_state:
     print_settings(project_state, processing_state)
     print(
         "Commands: project/p <name>, trim/t [on|off], normalize/n [on|off], "
-        "status/s, quit/q, stop, !t, !n, !p [name], !d, !x"
+        "status/s, notify, quit/q, stop, !t, !n, !p [name], !d, !x"
     )
 
 
@@ -303,13 +335,18 @@ def execute_command(command: str, runtime: Runtime, allow_quit: bool) -> bool:
         reveal_last_product(runtime.processor, runtime.logger)
         print_settings(runtime.project_state, runtime.processing_state)
         return False
+    if command in {"notify", "notification"}:
+        sent = runtime.notifier.send("Samplewatch test", format_settings(runtime.project_state, runtime.processing_state))
+        print("Notification sent" if sent else "Notification not sent")
+        print_settings(runtime.project_state, runtime.processing_state)
+        return False
     if command in {"status", "s"}:
         print_status(runtime.config, runtime.project_state, runtime.processing_state)
         return False
 
     print(
         "Unknown command. Try: project/p <name>, trim/t [on|off], "
-        "normalize/n [on|off], status/s, stop, !t, !n, !p [name], !d, !x"
+        "normalize/n [on|off], status/s, notify, stop, !t, !n, !p [name], !d, !x"
     )
     return False
 
@@ -366,13 +403,15 @@ class CommandServer:
         conn.sendall(json.dumps(response).encode() + b"\n")
 
 
-def send_client_command(command: str, socket_path: Path) -> int:
+def send_client_command(command: str, socket_path: Path, config_path: Path) -> int:
     try:
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
             client.connect(str(socket_path))
             client.sendall(json.dumps({"command": command}).encode() + b"\n")
             raw = client.recv(65536).decode()
     except FileNotFoundError:
+        if command in {"notify", "notification"}:
+            return send_standalone_notification(config_path)
         print(f"samplewatch is not running; no socket at {socket_path}")
         return 1
     except ConnectionRefusedError:
@@ -387,6 +426,16 @@ def send_client_command(command: str, socket_path: Path) -> int:
     if output:
         print(output, end="" if output.endswith("\n") else "\n")
     return 0 if response.get("ok") else 1
+
+
+def send_standalone_notification(config_path: Path) -> int:
+    config = Config.load(config_path)
+    config.log_file.parent.mkdir(parents=True, exist_ok=True)
+    logger = setup_logging(config.log_file)
+    notifier = Notifier(config.notifications.enabled, logger)
+    sent = notifier.send("Samplewatch test", "Notification Center test")
+    print("Notification sent" if sent else "Notification not sent")
+    return 0 if sent else 1
 
 
 def is_server_running(socket_path: Path) -> bool:
@@ -437,6 +486,7 @@ def print_status(config: Config, project_state: ProjectState, processing_state: 
     print(f"Normalize: {'on' if audio.normalize else 'off'}")
     print(f"Normalize target: {audio.normalize_target_dbfs:.1f} dBFS")
     print(f"Open Finder on launch: {'yes' if config.launch.open_finder else 'no'}")
+    print(f"Notifications: {'on' if config.notifications.enabled else 'off'}")
     print(f"Log: {config.log_file}")
 
 

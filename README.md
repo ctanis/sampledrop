@@ -15,6 +15,7 @@
 - Deletes the original only after the processed file is safely written
 - Saves project, trim, and normalize state back to the config on exit
 - Optionally opens the drop folder in Finder at launch
+- Shows macOS Notification Center popups for detached watcher activity
 - Logs concise processing results to a simple log file
 
 ## Install
@@ -68,11 +69,14 @@ stable_interval_sec = 0.5
 write_timeout_sec = 60.0
 
 [launch]
-open_finder = false
+open_finder = true
 finder_left = 80
 finder_top = 80
 finder_width = 520
 finder_height = 360
+
+[notifications]
+enabled = true
 ```
 
 If no config file exists, `samplewatch` uses these same defaults.
@@ -99,6 +103,7 @@ samplewatch p modular
 samplewatch t off
 samplewatch !d
 samplewatch !x
+samplewatch notify
 samplewatch stop
 ```
 
@@ -122,6 +127,7 @@ normalize
 normalize off
 s
 status
+notify
 !t
 !n
 !p
@@ -133,7 +139,7 @@ quit
 stop
 ```
 
-`project <name>` and `p <name>` set the current project. `project` or `p` prints it. `trim` or `t` toggles trimming. `normalize`, `norm`, or `n` toggles normalizing. `trim on|off`, `t on|off`, `normalize on|off`, and `n on|off` set those options explicitly. `status` or `s` prints the active configuration. `quit` or `q` exits foreground interactive mode. `stop` terminates a detached watcher. State-changing commands print the current project, trim, and normalize settings immediately.
+`project <name>` and `p <name>` set the current project. `project` or `p` prints it. `trim` or `t` toggles trimming. `normalize`, `norm`, or `n` toggles normalizing. `trim on|off`, `t on|off`, `normalize on|off`, and `n on|off` set those options explicitly. `status` or `s` prints the active configuration. `notify` sends a test Notification Center popup. `quit` or `q` exits foreground interactive mode. `stop` terminates a detached watcher. State-changing commands print the current project, trim, and normalize settings immediately.
 
 Bang commands operate on the last successfully saved file:
 
@@ -179,6 +185,13 @@ finder_height = 360
 
 Finder window sizing is best-effort and macOS-only. If the Finder helper fails, `samplewatch` keeps running and writes the failure to the log.
 
+Notifications use macOS Notification Center and can be disabled:
+
+```toml
+[notifications]
+enabled = false
+```
+
 Detached mode uses a local Unix socket and PID file:
 
 ```text
@@ -197,6 +210,7 @@ Alfred workflows can call the same one-shot commands, for example `samplewatch p
 - Project, trim, and normalize exit state is written to the active config file as the next run's defaults.
 - Bang commands edit only the last successfully saved file and do not change trim/normalize defaults.
 - Launch helper settings are preserved when exit state is saved.
+- Notification settings are preserved when exit state is saved.
 
 ## Future Extensions
 

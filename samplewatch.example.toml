@@ -17,10 +17,14 @@ write_timeout_sec = 60.0
 
 [launch]
 # Open the drop folder in Finder when samplewatch starts.
-open_finder = false
+open_finder = true
 
 # Finder sizing is best-effort and macOS-only.
 finder_left = 80
 finder_top = 80
 finder_width = 520
 finder_height = 360
+
+[notifications]
+# Show macOS Notification Center popups for background watcher activity.
+enabled = true

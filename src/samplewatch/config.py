@@ -23,11 +23,16 @@ class AudioOptions:
 
 @dataclass(frozen=True)
 class LaunchOptions:
-    open_finder: bool = False
+    open_finder: bool = True
     finder_left: int = 80
     finder_top: int = 80
     finder_width: int = 520
     finder_height: int = 360
+
+
+@dataclass(frozen=True)
+class NotificationOptions:
+    enabled: bool = True
 
 
 @dataclass(frozen=True)
@@ -38,6 +43,7 @@ class Config:
     log_file: Path
     audio: AudioOptions
     launch: LaunchOptions
+    notifications: NotificationOptions
 
     @classmethod
     def load(cls, path: Path) -> "Config":
@@ -45,6 +51,7 @@ class Config:
         general = data.get("general", {})
         audio = data.get("audio", {})
         launch = data.get("launch", {})
+        notifications = data.get("notifications", {})
 
         drop_dir = _expand_path(general.get("drop_dir", "~/SampleDrop"))
         samples_dir = _expand_path(general.get("samples_dir", "~/Samples"))
@@ -65,11 +72,14 @@ class Config:
                 write_timeout_sec=float(audio.get("write_timeout_sec", 60.0)),
             ),
             launch=LaunchOptions(
-                open_finder=bool(launch.get("open_finder", False)),
+                open_finder=bool(launch.get("open_finder", True)),
                 finder_left=int(launch.get("finder_left", 80)),
                 finder_top=int(launch.get("finder_top", 80)),
                 finder_width=int(launch.get("finder_width", 520)),
                 finder_height=int(launch.get("finder_height", 360)),
+            ),
+            notifications=NotificationOptions(
+                enabled=bool(notifications.get("enabled", True)),
             ),
         )
 
@@ -100,6 +110,9 @@ class Config:
                     f"finder_top = {self.launch.finder_top}",
                     f"finder_width = {self.launch.finder_width}",
                     f"finder_height = {self.launch.finder_height}",
+                    "",
+                    "[notifications]",
+                    f"enabled = {_toml_bool(self.notifications.enabled)}",
                     "",
                 ]
             )
