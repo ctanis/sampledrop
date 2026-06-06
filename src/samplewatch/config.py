@@ -1,0 +1,116 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+import tomllib
+
+
+DEFAULT_CONFIG_PATH = Path("~/.samplewatch.toml").expanduser()
+
+
+@dataclass(frozen=True)
+class AudioOptions:
+    trim: bool = True
+    normalize: bool = True
+    normalize_target_dbfs: float = -1.0
+    silence_threshold_dbfs: float = -50.0
+    stable_checks: int = 3
+    stable_interval_sec: float = 0.5
+    write_timeout_sec: float = 60.0
+
+
+@dataclass(frozen=True)
+class LaunchOptions:
+    open_finder: bool = False
+    finder_left: int = 80
+    finder_top: int = 80
+    finder_width: int = 520
+    finder_height: int = 360
+
+
+@dataclass(frozen=True)
+class Config:
+    drop_dir: Path
+    samples_dir: Path
+    project: str
+    log_file: Path
+    audio: AudioOptions
+    launch: LaunchOptions
+
+    @classmethod
+    def load(cls, path: Path) -> "Config":
+        data = tomllib.loads(path.read_text()) if path.exists() else {}
+        general = data.get("general", {})
+        audio = data.get("audio", {})
+        launch = data.get("launch", {})
+
+        drop_dir = _expand_path(general.get("drop_dir", "~/SampleDrop"))
+        samples_dir = _expand_path(general.get("samples_dir", "~/Samples"))
+        log_file = _expand_path(general.get("log_file", "~/.samplewatch.log"))
+
+        return cls(
+            drop_dir=drop_dir,
+            samples_dir=samples_dir,
+            project=str(general.get("project", "samples")),
+            log_file=log_file,
+            audio=AudioOptions(
+                trim=bool(audio.get("trim", True)),
+                normalize=bool(audio.get("normalize", True)),
+                normalize_target_dbfs=float(audio.get("normalize_target_dbfs", -1.0)),
+                silence_threshold_dbfs=float(audio.get("silence_threshold_dbfs", -50.0)),
+                stable_checks=int(audio.get("stable_checks", 3)),
+                stable_interval_sec=float(audio.get("stable_interval_sec", 0.5)),
+                write_timeout_sec=float(audio.get("write_timeout_sec", 60.0)),
+            ),
+            launch=LaunchOptions(
+                open_finder=bool(launch.get("open_finder", False)),
+                finder_left=int(launch.get("finder_left", 80)),
+                finder_top=int(launch.get("finder_top", 80)),
+                finder_width=int(launch.get("finder_width", 520)),
+                finder_height=int(launch.get("finder_height", 360)),
+            ),
+        )
+
+    def save(self, path: Path, project: str, audio: AudioOptions) -> None:
+        path = path.expanduser()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            "\n".join(
+                [
+                    "[general]",
+                    f'drop_dir = "{_toml_string(str(self.drop_dir))}"',
+                    f'samples_dir = "{_toml_string(str(self.samples_dir))}"',
+                    f'project = "{_toml_string(project)}"',
+                    f'log_file = "{_toml_string(str(self.log_file))}"',
+                    "",
+                    "[audio]",
+                    f"trim = {_toml_bool(audio.trim)}",
+                    f"normalize = {_toml_bool(audio.normalize)}",
+                    f"normalize_target_dbfs = {audio.normalize_target_dbfs:.1f}",
+                    f"silence_threshold_dbfs = {audio.silence_threshold_dbfs:.1f}",
+                    f"stable_checks = {audio.stable_checks}",
+                    f"stable_interval_sec = {audio.stable_interval_sec:g}",
+                    f"write_timeout_sec = {audio.write_timeout_sec:g}",
+                    "",
+                    "[launch]",
+                    f"open_finder = {_toml_bool(self.launch.open_finder)}",
+                    f"finder_left = {self.launch.finder_left}",
+                    f"finder_top = {self.launch.finder_top}",
+                    f"finder_width = {self.launch.finder_width}",
+                    f"finder_height = {self.launch.finder_height}",
+                    "",
+                ]
+            )
+        )
+
+
+def _expand_path(value: str) -> Path:
+    return Path(value).expanduser().resolve()
+
+
+def _toml_bool(value: bool) -> str:
+    return "true" if value else "false"
+
+
+def _toml_string(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')

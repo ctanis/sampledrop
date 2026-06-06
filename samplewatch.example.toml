@@ -1,0 +1,26 @@
+[general]
+drop_dir = "~/SampleDrop"
+samples_dir = "~/Samples"
+project = "phaseplant"
+log_file = "~/.samplewatch.log"
+
+[audio]
+trim = true
+normalize = true
+normalize_target_dbfs = -1.0
+silence_threshold_dbfs = -50.0
+
+# A file is considered finished when its size stays unchanged for this many checks.
+stable_checks = 3
+stable_interval_sec = 0.5
+write_timeout_sec = 60.0
+
+[launch]
+# Open the drop folder in Finder when samplewatch starts.
+open_finder = false
+
+# Finder sizing is best-effort and macOS-only.
+finder_left = 80
+finder_top = 80
+finder_width = 520
+finder_height = 360
