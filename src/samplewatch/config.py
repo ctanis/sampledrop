@@ -6,6 +6,8 @@ import tomllib
 
 
 DEFAULT_CONFIG_PATH = Path("~/.samplewatch.toml").expanduser()
+DEFAULT_SOCKET_PATH = Path("~/.samplewatch.sock").expanduser()
+DEFAULT_PID_PATH = Path("~/.samplewatch.pid").expanduser()
 
 
 @dataclass(frozen=True)

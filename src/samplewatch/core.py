@@ -174,6 +174,10 @@ class SampleProcessor:
             print(f"{destination.parent.name}/{destination.name}")
             return destination
 
+    def last_path(self) -> Path:
+        with self._process_lock:
+            return self._require_last_path()
+
     def _reprocess_last(self, label: str, options: AudioOptions) -> AudioResult | None:
         with self._process_lock:
             source = self._require_last_path()

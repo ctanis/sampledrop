@@ -79,8 +79,27 @@ If no config file exists, `samplewatch` uses these same defaults.
 
 ## Run
 
+Foreground interactive mode:
+
 ```sh
 samplewatch
+```
+
+Detached watcher mode:
+
+```sh
+samplewatch --detach
+```
+
+One-shot client commands, suitable for Alfred:
+
+```sh
+samplewatch status
+samplewatch p modular
+samplewatch t off
+samplewatch !d
+samplewatch !x
+samplewatch stop
 ```
 
 Use a custom config:
@@ -107,11 +126,14 @@ status
 !n
 !p
 !p phaseplant
+!d
+!x
 q
 quit
+stop
 ```
 
-`project <name>` and `p <name>` set the current project. `project` or `p` prints it. `trim` or `t` toggles trimming. `normalize`, `norm`, or `n` toggles normalizing. `trim on|off`, `t on|off`, `normalize on|off`, and `n on|off` set those options explicitly. `status` or `s` prints the active configuration. `quit` or `q` exits cleanly. State-changing commands print the current project, trim, and normalize settings immediately.
+`project <name>` and `p <name>` set the current project. `project` or `p` prints it. `trim` or `t` toggles trimming. `normalize`, `norm`, or `n` toggles normalizing. `trim on|off`, `t on|off`, `normalize on|off`, and `n on|off` set those options explicitly. `status` or `s` prints the active configuration. `quit` or `q` exits foreground interactive mode. `stop` terminates a detached watcher. State-changing commands print the current project, trim, and normalize settings immediately.
 
 Bang commands operate on the last successfully saved file:
 
@@ -119,6 +141,8 @@ Bang commands operate on the last successfully saved file:
 - `!n` normalizes the last saved file.
 - `!p` renames the last saved file to the current project sequence.
 - `!p <name>` renames the last saved file to that project sequence and makes it the current project for future files.
+- `!d` reopens the drop folder Finder window.
+- `!x` reveals the last saved file in Finder.
 
 ## Output
 
@@ -154,6 +178,15 @@ finder_height = 360
 ```
 
 Finder window sizing is best-effort and macOS-only. If the Finder helper fails, `samplewatch` keeps running and writes the failure to the log.
+
+Detached mode uses a local Unix socket and PID file:
+
+```text
+~/.samplewatch.sock
+~/.samplewatch.pid
+```
+
+Alfred workflows can call the same one-shot commands, for example `samplewatch p phaseplant` or `samplewatch !x`.
 
 ## Notes
 
