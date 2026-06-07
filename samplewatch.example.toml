@@ -24,6 +24,10 @@ finder_left = 80
 finder_top = 80
 finder_width = 520
 finder_height = 360
+finder_hide_toolbar = true
+
+# Optional Finder icon-view background image for a dropzone look.
+# finder_background_image = "~/.local/share/samplewatch/assets/dropzone-target-finder.png"
 
 [notifications]
 # Show macOS Notification Center popups for background watcher activity.

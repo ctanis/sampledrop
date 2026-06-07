@@ -28,6 +28,8 @@ class LaunchOptions:
     finder_top: int = 80
     finder_width: int = 520
     finder_height: int = 360
+    finder_hide_toolbar: bool = True
+    finder_background_image: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -77,6 +79,8 @@ class Config:
                 finder_top=int(launch.get("finder_top", 80)),
                 finder_width=int(launch.get("finder_width", 520)),
                 finder_height=int(launch.get("finder_height", 360)),
+                finder_hide_toolbar=bool(launch.get("finder_hide_toolbar", True)),
+                finder_background_image=_expand_optional_path(launch.get("finder_background_image")),
             ),
             notifications=NotificationOptions(
                 enabled=bool(notifications.get("enabled", True)),
@@ -110,6 +114,12 @@ class Config:
                     f"finder_top = {self.launch.finder_top}",
                     f"finder_width = {self.launch.finder_width}",
                     f"finder_height = {self.launch.finder_height}",
+                    f"finder_hide_toolbar = {_toml_bool(self.launch.finder_hide_toolbar)}",
+                    *(
+                        [f'finder_background_image = "{_toml_string(str(self.launch.finder_background_image))}"']
+                        if self.launch.finder_background_image
+                        else []
+                    ),
                     "",
                     "[notifications]",
                     f"enabled = {_toml_bool(self.notifications.enabled)}",
@@ -121,6 +131,15 @@ class Config:
 
 def _expand_path(value: str) -> Path:
     return Path(value).expanduser().resolve()
+
+
+def _expand_optional_path(value: object) -> Path | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    return _expand_path(text)
 
 
 def _toml_bool(value: bool) -> str:

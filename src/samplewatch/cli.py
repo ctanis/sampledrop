@@ -500,6 +500,9 @@ def print_status(config: Config, project_state: ProjectState, processing_state: 
     print(f"Normalize: {'on' if audio.normalize else 'off'}")
     print(f"Normalize target: {audio.normalize_target_dbfs:.1f} dBFS")
     print(f"Open Finder on launch: {'yes' if config.launch.open_finder else 'no'}")
+    print(f"Finder hide toolbar: {'yes' if config.launch.finder_hide_toolbar else 'no'}")
+    if config.launch.finder_background_image:
+        print(f"Finder background: {config.launch.finder_background_image}")
     print(f"Notifications: {'on' if config.notifications.enabled else 'off'}")
     print(f"Log: {config.log_file}")
 
@@ -529,11 +532,28 @@ def open_finder_drop(config: Config, logger: logging.Logger) -> None:
     top = config.launch.finder_top
     right = left + config.launch.finder_width
     bottom = top + config.launch.finder_height
+    toolbar_line = (
+        "  set toolbar visible of front window to false"
+        if config.launch.finder_hide_toolbar
+        else "  set toolbar visible of front window to true"
+    )
+    background_line = ""
+    if config.launch.finder_background_image:
+        if config.launch.finder_background_image.exists():
+            background_line = (
+                "  set background picture of icon view options of front window "
+                f'to (POSIX file "{_applescript_string(str(config.launch.finder_background_image))}")'
+            )
+        else:
+            logger.warning("Finder background image not found path=%s", config.launch.finder_background_image)
     script = f"""
 tell application "Finder"
   activate
   open POSIX file "{_applescript_string(str(config.drop_dir))}"
   set bounds of front window to {{{left}, {top}, {right}, {bottom}}}
+  set current view of front window to icon view
+{toolbar_line}
+{background_line}
 end tell
 """
     try:

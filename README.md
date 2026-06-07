@@ -38,10 +38,11 @@ This creates:
 
 ```text
 ~/.local/share/samplewatch/venv/
+~/.local/share/samplewatch/assets/dropzone-target-finder.png
 ~/bin/samplewatch -> ~/.local/share/samplewatch/venv/bin/samplewatch
 ```
 
-The installer copies `samplewatch.example.toml` to `~/.samplewatch.toml` only if no config exists yet. If `~/bin` is not on your `PATH`, the installer prints the shell line to add.
+The installer copies `samplewatch.example.toml` to `~/.samplewatch.toml` only if no config exists yet, and new configs point the Finder drop window at the installed dropzone target image. If `~/bin` is not on your `PATH`, the installer prints the shell line to add.
 
 Upgrade from this repo:
 
@@ -89,6 +90,8 @@ finder_left = 80
 finder_top = 80
 finder_width = 520
 finder_height = 360
+finder_hide_toolbar = true
+# finder_background_image = "~/.local/share/samplewatch/assets/dropzone-target-finder.png"
 
 [notifications]
 enabled = true
@@ -198,9 +201,11 @@ finder_left = 80
 finder_top = 80
 finder_width = 520
 finder_height = 360
+finder_hide_toolbar = true
+# finder_background_image = "~/.local/share/samplewatch/assets/dropzone-target-finder.png"
 ```
 
-Finder window sizing is best-effort and macOS-only. If the Finder helper fails, `samplewatch` keeps running and writes the failure to the log.
+Finder window sizing and decoration are best-effort and macOS-only. The background image is applied to the folder's icon view; use an image close to the Finder window size, because Finder can show an oversized image as a mostly blank crop. Hiding the toolbar also hides the Finder sidebar for the drop window. If the Finder helper fails, `samplewatch` keeps running and writes the failure to the log.
 
 Notifications use macOS Notification Center and can be disabled:
 
