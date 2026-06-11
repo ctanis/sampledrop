@@ -168,6 +168,7 @@ class SampleProcessor:
                 self.project_state.set(project)
             if source.name.startswith(f"{target_project}_"):
                 print(f"Last file already uses project: {target_project}")
+                self.notify("Sample rename unchanged", f"{source.parent.name}/{source.name}")
                 return source
 
             destination = self.sequences.next_destination(target_project, source.parent.name)

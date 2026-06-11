@@ -7,6 +7,7 @@
 - Watches a configured drop folder, such as `~/SampleDrop`
 - Supports `.wav`, `.aiff`, `.aif`, and `.flac` inputs
 - Writes organized WAV files to `Samples/YYYY-MM-DD/`
+- Preserves source sample rate and WAV-compatible bit depth, falling back to 44.1 kHz / 24-bit WAV
 - Maintains an in-memory project name while running
 - Treats the drop folder as a simple spool directory
 - Uses per-project, per-day numbering like `phaseplant_001.wav`
@@ -79,6 +80,8 @@ log_file = "~/.samplewatch.log"
 trim = true
 normalize = true
 normalize_target_dbfs = -1.0
+fallback_output_subtype = "PCM_24"
+fallback_sample_rate = 44100
 silence_threshold_dbfs = -50.0
 stable_checks = 3
 stable_interval_sec = 0.5
@@ -157,7 +160,7 @@ quit
 stop
 ```
 
-`project <name>` and `p <name>` set the current project. `project` or `p` prints it. `trim` or `t` toggles trimming. `normalize`, `norm`, or `n` toggles normalizing. `trim on|off`, `t on|off`, `normalize on|off`, and `n on|off` set those options explicitly. `status` or `s` prints the active configuration. `notify` sends a test Notification Center popup. `quit` or `q` exits foreground interactive mode. `stop` terminates a detached watcher. State-changing commands print the current project, trim, and normalize settings immediately.
+`project <name>` and `p <name>` set the current project. `project` or `p` prints it. `trim` or `t` toggles trimming. `normalize`, `norm`, or `n` toggles normalizing. `trim on|off`, `t on|off`, `normalize on|off`, and `n on|off` set those options explicitly. `status` or `s` prints the active configuration. `notify` sends a test Notification Center popup. `quit` or `q` exits foreground interactive mode. `stop` terminates a detached watcher. Successful operations send Notification Center updates when notifications are enabled. State-changing commands print the current project, trim, and normalize settings immediately.
 
 Last-file and Finder commands:
 
@@ -251,7 +254,7 @@ sd d
 ```
 
 Install `samplewatch` first with `scripts/install.sh`, because the Alfred workflow calls the installed `samplewatch` command.
-`status` includes whether the detached backend is running. When the detached watcher is running, `sd status` also shows a silent Notification Center summary of the backend, current project, trim, normalize, and notification settings.
+`status` includes whether the detached backend is running. When the detached watcher is running and notifications are enabled, `sd status` also triggers samplewatch's silent Notification Center summary of the backend, current project, trim, normalize, and notification settings.
 
 ## Notes
 
@@ -268,6 +271,6 @@ Install `samplewatch` first with `scripts/install.sh`, because the Alfred workfl
 
 - Optional subfolders by source app, BPM, key, or input format
 - A `skip normalize once` command for special recordings
-- Configurable output bit depth or sample rate conversion
+- Optional sample rate conversion when a fixed output rate is desired
 - Sidecar metadata files for notes, tags, or hardware chain
 - A tiny menu bar companion that sends project-name commands to the watcher

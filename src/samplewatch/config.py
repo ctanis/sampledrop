@@ -15,6 +15,8 @@ class AudioOptions:
     trim: bool = True
     normalize: bool = True
     normalize_target_dbfs: float = -1.0
+    fallback_output_subtype: str = "PCM_24"
+    fallback_sample_rate: int = 44100
     silence_threshold_dbfs: float = -50.0
     stable_checks: int = 3
     stable_interval_sec: float = 0.5
@@ -68,6 +70,8 @@ class Config:
                 trim=bool(audio.get("trim", True)),
                 normalize=bool(audio.get("normalize", True)),
                 normalize_target_dbfs=float(audio.get("normalize_target_dbfs", -1.0)),
+                fallback_output_subtype=str(audio.get("fallback_output_subtype", "PCM_24")),
+                fallback_sample_rate=int(audio.get("fallback_sample_rate", 44100)),
                 silence_threshold_dbfs=float(audio.get("silence_threshold_dbfs", -50.0)),
                 stable_checks=int(audio.get("stable_checks", 3)),
                 stable_interval_sec=float(audio.get("stable_interval_sec", 0.5)),
@@ -103,6 +107,8 @@ class Config:
                     f"trim = {_toml_bool(audio.trim)}",
                     f"normalize = {_toml_bool(audio.normalize)}",
                     f"normalize_target_dbfs = {audio.normalize_target_dbfs:.1f}",
+                    f'fallback_output_subtype = "{_toml_string(audio.fallback_output_subtype)}"',
+                    f"fallback_sample_rate = {audio.fallback_sample_rate}",
                     f"silence_threshold_dbfs = {audio.silence_threshold_dbfs:.1f}",
                     f"stable_checks = {audio.stable_checks}",
                     f"stable_interval_sec = {audio.stable_interval_sec:g}",

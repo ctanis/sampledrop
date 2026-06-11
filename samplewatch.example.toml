@@ -8,6 +8,8 @@ log_file = "~/.samplewatch.log"
 trim = true
 normalize = true
 normalize_target_dbfs = -1.0
+fallback_output_subtype = "PCM_24"
+fallback_sample_rate = 44100
 silence_threshold_dbfs = -50.0
 
 # A file is considered finished when its size stays unchanged for this many checks.

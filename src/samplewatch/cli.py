@@ -144,7 +144,7 @@ def run_watcher(config_path: Path, socket_path: Path, pid_path: Path, interactiv
     config.samples_dir.mkdir(parents=True, exist_ok=True)
     config.log_file.parent.mkdir(parents=True, exist_ok=True)
 
-    logger = setup_logging(config.log_file)
+    logger = setup_logging(config.log_file, log_started=False)
     notifier = Notifier(config.notifications.enabled, logger)
     runtime = Runtime(
         config_path=config_path,
@@ -276,40 +276,50 @@ def execute_command(command: str, runtime: Runtime, allow_quit: bool) -> bool:
         return False
     if command in {"project", "p"}:
         print_settings(runtime.project_state, runtime.processing_state)
+        notify_settings(runtime, "Samplewatch project")
         return False
     if command.startswith("project "):
-        set_project(runtime.project_state, runtime.processing_state, command.removeprefix("project "))
+        project = set_project(runtime.project_state, runtime.processing_state, command.removeprefix("project "))
+        notify_settings(runtime, "Project set", f"project={project}")
         return False
     if command.startswith("p "):
-        set_project(runtime.project_state, runtime.processing_state, command.removeprefix("p "))
+        project = set_project(runtime.project_state, runtime.processing_state, command.removeprefix("p "))
+        notify_settings(runtime, "Project set", f"project={project}")
         return False
     if command in {"trim", "t"}:
-        runtime.processing_state.toggle_trim()
+        enabled = runtime.processing_state.toggle_trim()
         print_settings(runtime.project_state, runtime.processing_state)
+        notify_settings(runtime, "Trim toggled", f"trim={'on' if enabled else 'off'}")
         return False
     if command.startswith("trim "):
-        runtime.processing_state.set_trim(parse_enabled(command.removeprefix("trim ")))
+        enabled = runtime.processing_state.set_trim(parse_enabled(command.removeprefix("trim ")))
         print_settings(runtime.project_state, runtime.processing_state)
+        notify_settings(runtime, "Trim set", f"trim={'on' if enabled else 'off'}")
         return False
     if command.startswith("t "):
-        runtime.processing_state.set_trim(parse_enabled(command.removeprefix("t ")))
+        enabled = runtime.processing_state.set_trim(parse_enabled(command.removeprefix("t ")))
         print_settings(runtime.project_state, runtime.processing_state)
+        notify_settings(runtime, "Trim set", f"trim={'on' if enabled else 'off'}")
         return False
     if command in {"normalize", "norm", "n"}:
-        runtime.processing_state.toggle_normalize()
+        enabled = runtime.processing_state.toggle_normalize()
         print_settings(runtime.project_state, runtime.processing_state)
+        notify_settings(runtime, "Normalize toggled", f"normalize={'on' if enabled else 'off'}")
         return False
     if command.startswith("normalize "):
-        runtime.processing_state.set_normalize(parse_enabled(command.removeprefix("normalize ")))
+        enabled = runtime.processing_state.set_normalize(parse_enabled(command.removeprefix("normalize ")))
         print_settings(runtime.project_state, runtime.processing_state)
+        notify_settings(runtime, "Normalize set", f"normalize={'on' if enabled else 'off'}")
         return False
     if command.startswith("norm "):
-        runtime.processing_state.set_normalize(parse_enabled(command.removeprefix("norm ")))
+        enabled = runtime.processing_state.set_normalize(parse_enabled(command.removeprefix("norm ")))
         print_settings(runtime.project_state, runtime.processing_state)
+        notify_settings(runtime, "Normalize set", f"normalize={'on' if enabled else 'off'}")
         return False
     if command.startswith("n "):
-        runtime.processing_state.set_normalize(parse_enabled(command.removeprefix("n ")))
+        enabled = runtime.processing_state.set_normalize(parse_enabled(command.removeprefix("n ")))
         print_settings(runtime.project_state, runtime.processing_state)
+        notify_settings(runtime, "Normalize set", f"normalize={'on' if enabled else 'off'}")
         return False
     if command in {"!t", "lt"}:
         runtime.processor.trim_last()
@@ -334,10 +344,12 @@ def execute_command(command: str, runtime: Runtime, allow_quit: bool) -> bool:
     if command in {"!d", "d"}:
         open_finder_drop(runtime.config, runtime.logger)
         print_settings(runtime.project_state, runtime.processing_state)
+        runtime.notifier.send("Drop folder opened", str(runtime.config.drop_dir))
         return False
     if command in {"!x", "x"}:
-        reveal_last_product(runtime.processor, runtime.logger)
+        path = reveal_last_product(runtime.processor, runtime.logger)
         print_settings(runtime.project_state, runtime.processing_state)
+        runtime.notifier.send("Last sample revealed", str(path))
         return False
     if command in {"notify", "notification"}:
         sent = runtime.notifier.send("Samplewatch test", format_settings(runtime.project_state, runtime.processing_state))
@@ -346,6 +358,7 @@ def execute_command(command: str, runtime: Runtime, allow_quit: bool) -> bool:
         return False
     if command in {"status", "s"}:
         print_status(runtime.config, runtime.project_state, runtime.processing_state)
+        notify_settings(runtime, "Samplewatch status")
         return False
 
     print(
@@ -418,18 +431,21 @@ def send_client_command(command: str, socket_path: Path, config_path: Path) -> i
             return send_standalone_notification(config_path)
         if command in {"status", "s"}:
             print_stopped_status(socket_path)
+            send_standalone_status_notification(config_path, "Backend not running", str(socket_path))
             return 0
         print(f"samplewatch is not running; no socket at {socket_path}")
         return 1
     except ConnectionRefusedError:
         if command in {"status", "s"}:
             print_unreachable_status(socket_path)
+            send_standalone_status_notification(config_path, "Backend unreachable", str(socket_path))
             return 1
         print(f"samplewatch socket is not accepting commands: {socket_path}")
         return 1
     except OSError as exc:
         if command in {"status", "s"}:
             print_unreachable_status(socket_path, str(exc))
+            send_standalone_status_notification(config_path, "Backend unreachable", str(exc))
             return 1
         print(f"Could not contact samplewatch: {exc}")
         return 1
@@ -444,11 +460,18 @@ def send_client_command(command: str, socket_path: Path, config_path: Path) -> i
 def send_standalone_notification(config_path: Path) -> int:
     config = Config.load(config_path)
     config.log_file.parent.mkdir(parents=True, exist_ok=True)
-    logger = setup_logging(config.log_file)
+    logger = setup_logging(config.log_file, log_started=False)
     notifier = Notifier(config.notifications.enabled, logger)
     sent = notifier.send("Samplewatch test", "Notification Center test")
     print("Notification sent" if sent else "Notification not sent")
     return 0 if sent else 1
+
+
+def send_standalone_status_notification(config_path: Path, title: str, message: str) -> None:
+    config = Config.load(config_path)
+    config.log_file.parent.mkdir(parents=True, exist_ok=True)
+    logger = setup_logging(config.log_file)
+    Notifier(config.notifications.enabled, logger).send(f"Samplewatch status: {title}", message)
 
 
 def is_server_running(socket_path: Path) -> bool:
@@ -463,10 +486,11 @@ def is_server_running(socket_path: Path) -> bool:
         return False
 
 
-def set_project(project_state: ProjectState, processing_state: ProcessingState, raw_project: str) -> None:
+def set_project(project_state: ProjectState, processing_state: ProcessingState, raw_project: str) -> str:
     project = project_state.set(raw_project)
     print(f"Project set: {project}")
     print_settings(project_state, processing_state)
+    return project
 
 
 def parse_enabled(raw_value: str) -> bool:
@@ -489,6 +513,10 @@ def print_settings(project_state: ProjectState, processing_state: ProcessingStat
     print(format_settings(project_state, processing_state))
 
 
+def notify_settings(runtime: Runtime, title: str, message: str | None = None) -> None:
+    runtime.notifier.send(title, message or format_settings(runtime.project_state, runtime.processing_state))
+
+
 def print_status(config: Config, project_state: ProjectState, processing_state: ProcessingState) -> None:
     audio = processing_state.snapshot()
     print("Status:")
@@ -499,6 +527,8 @@ def print_status(config: Config, project_state: ProjectState, processing_state: 
     print(f"Trim: {'on' if audio.trim else 'off'}")
     print(f"Normalize: {'on' if audio.normalize else 'off'}")
     print(f"Normalize target: {audio.normalize_target_dbfs:.1f} dBFS")
+    print(f"Fallback output subtype: {audio.fallback_output_subtype}")
+    print(f"Fallback sample rate: {audio.fallback_sample_rate} Hz")
     print(f"Open Finder on launch: {'yes' if config.launch.open_finder else 'no'}")
     print(f"Finder hide toolbar: {'yes' if config.launch.finder_hide_toolbar else 'no'}")
     if config.launch.finder_background_image:
@@ -564,7 +594,7 @@ end tell
         print(f"Warning: could not open Finder for {config.drop_dir}")
 
 
-def reveal_last_product(processor: SampleProcessor, logger: logging.Logger) -> None:
+def reveal_last_product(processor: SampleProcessor, logger: logging.Logger) -> Path:
     path = processor.last_path()
     script = f"""
 tell application "Finder"
@@ -578,6 +608,7 @@ end tell
     except Exception:
         logger.exception("failed to reveal last file=%s", path)
         print(f"Warning: could not reveal last file {path}")
+    return path
 
 
 def _applescript_string(value: str) -> str:
@@ -599,7 +630,7 @@ def save_exit_state(
         print(f"Warning: could not save exit state to {config_path}")
 
 
-def setup_logging(log_file: Path) -> logging.Logger:
+def setup_logging(log_file: Path, log_started: bool = True) -> logging.Logger:
     logger = logging.getLogger("samplewatch")
     logger.setLevel(logging.INFO)
     logger.handlers.clear()
@@ -608,7 +639,8 @@ def setup_logging(log_file: Path) -> logging.Logger:
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     logger.addHandler(handler)
     logger.propagate = False
-    logger.info("started")
+    if log_started:
+        logger.info("started")
     return logger
 
 

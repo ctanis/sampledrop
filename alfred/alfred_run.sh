@@ -25,19 +25,4 @@ if [ -z "$OUTPUT" ]; then
   OUTPUT="Done: samplewatch $COMMAND"
 fi
 
-if [ "$REQUESTED_COMMAND" = "status" ] && command -v osascript >/dev/null 2>&1; then
-  STATUS_MESSAGE=$(
-    printf '%s\n' "$OUTPUT" |
-      awk -F': ' '/^(Backend|Project|Trim|Normalize|Notifications): / {printf "%s=%s ", tolower($1), $2}'
-  )
-  if [ -z "$STATUS_MESSAGE" ]; then
-    STATUS_MESSAGE=$(printf '%s\n' "$OUTPUT" | awk 'NF {print; count++} count == 3 {exit}')
-  fi
-  osascript \
-    -e 'on run argv' \
-    -e 'display notification (item 1 of argv) with title "Samplewatch Status"' \
-    -e 'end run' \
-    "$STATUS_MESSAGE" >/dev/null 2>&1 || true
-fi
-
 printf '%s\n' "$OUTPUT"
