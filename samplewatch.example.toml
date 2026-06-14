@@ -34,3 +34,7 @@ finder_hide_toolbar = true
 [notifications]
 # Show macOS Notification Center popups for background watcher activity.
 enabled = true
+
+[organization]
+# Output folder grouping: none, day, week, or month.
+folder_granularity = "week"

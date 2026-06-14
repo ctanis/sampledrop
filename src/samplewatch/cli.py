@@ -221,6 +221,7 @@ def print_startup(config: Config, project_state: ProjectState, processing_state:
     print("samplewatch running")
     print(f"Drop folder: {config.drop_dir}")
     print(f"Samples: {config.samples_dir}")
+    print(f"Output folders: {config.organization.folder_granularity}")
     print_settings(project_state, processing_state)
     print(
         "Commands: project/p <name>, trim/t [on|off], normalize/n [on|off], "
@@ -468,10 +469,13 @@ def send_standalone_notification(config_path: Path) -> int:
 
 
 def send_standalone_status_notification(config_path: Path, title: str, message: str) -> None:
-    config = Config.load(config_path)
-    config.log_file.parent.mkdir(parents=True, exist_ok=True)
-    logger = setup_logging(config.log_file)
-    Notifier(config.notifications.enabled, logger).send(f"Samplewatch status: {title}", message)
+    try:
+        config = Config.load(config_path)
+        config.log_file.parent.mkdir(parents=True, exist_ok=True)
+        logger = setup_logging(config.log_file, log_started=False)
+        Notifier(config.notifications.enabled, logger).send(f"Samplewatch status: {title}", message)
+    except Exception:
+        return
 
 
 def is_server_running(socket_path: Path) -> bool:
@@ -524,6 +528,7 @@ def print_status(config: Config, project_state: ProjectState, processing_state: 
     print(f"Project: {project_state.get()}")
     print(f"Drop folder: {config.drop_dir}")
     print(f"Samples: {config.samples_dir}")
+    print(f"Output folders: {config.organization.folder_granularity}")
     print(f"Trim: {'on' if audio.trim else 'off'}")
     print(f"Normalize: {'on' if audio.normalize else 'off'}")
     print(f"Normalize target: {audio.normalize_target_dbfs:.1f} dBFS")

@@ -1,16 +1,16 @@
 # samplewatch
 
-`samplewatch` is a small Python command-line utility for a single-user macOS sampling workflow. It watches a drop folder for incoming audio, waits until each file is fully written, then saves a cleaned WAV into dated sample folders.
+`samplewatch` is a small Python command-line utility for a single-user macOS sampling workflow. It watches a drop folder for incoming audio, waits until each file is fully written, then saves a cleaned WAV into organized sample folders.
 
 ## Features
 
 - Watches a configured drop folder, such as `~/SampleDrop`
 - Supports `.wav`, `.aiff`, `.aif`, and `.flac` inputs
-- Writes organized WAV files to `Samples/YYYY-MM-DD/`
+- Writes organized WAV files to weekly sample folders by default
 - Preserves source sample rate and WAV-compatible bit depth, falling back to 44.1 kHz / 24-bit WAV
 - Maintains an in-memory project name while running
 - Treats the drop folder as a simple spool directory
-- Uses per-project, per-day numbering like `phaseplant_001.wav`
+- Uses continuous per-project numbering like `phaseplant_001.wav`
 - Optionally trims leading/trailing silence, with runtime toggles
 - Optionally normalizes peak level, with runtime toggles, defaulting to `-1.0 dBFS`
 - Deletes the original only after the processed file is safely written
@@ -98,9 +98,15 @@ finder_hide_toolbar = true
 
 [notifications]
 enabled = true
+
+[organization]
+folder_granularity = "week"
 ```
 
 If no config file exists, `samplewatch` uses these same defaults.
+
+`folder_granularity` controls output subfolders and can be `none`, `day`, `week`, or `month`. Sequence numbers stay continuous per project across the whole samples directory regardless of the folder grouping.
+Sequence reservations and the last saved sample path are stored in `.samplewatch-sequences.toml` at the root of the samples directory, with a short-lived lock directory while a number is being assigned. This keeps project sequence ids unique even when older samples are deleted, moved elsewhere, or created by another machine pointed at the same cloud-backed samples directory, and lets last-file commands work across watcher restarts.
 
 ## Run
 
@@ -179,7 +185,7 @@ Dropping `take.aiff` into `~/SampleDrop` with project `phaseplant` might create:
 
 ```text
 ~/Samples/
-└── 2026-06-06/
+└── 2026-W23/
     └── phaseplant_001.wav
 ```
 
@@ -187,7 +193,7 @@ Terminal output looks like:
 
 ```text
 Saved:
-2026-06-06/phaseplant_004.wav
+2026-W23/phaseplant_004.wav
 Project: phaseplant
 Trimmed: yes
 Normalized: yes
@@ -258,7 +264,8 @@ Install `samplewatch` first with `scripts/install.sh`, because the Alfred workfl
 
 ## Notes
 
-- Sequence numbers are calculated from existing files in the destination day folder.
+- Sequence numbers are continuous per project and calculated by scanning existing files under the samples directory.
+- The highest reserved project sequence ids and last saved sample path are also stored in `.samplewatch-sequences.toml`, so moved or deleted files do not cause ids to be reused and last-file commands can work across restarts.
 - Project names are normalized to lowercase slug names, so `Digitakt Kit` becomes `digitakt-kit`.
 - Audio is written as WAV regardless of input format.
 - If processing fails, the original file is left in the drop folder and the failure is written to the log.

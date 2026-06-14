@@ -40,6 +40,11 @@ class NotificationOptions:
 
 
 @dataclass(frozen=True)
+class OrganizationOptions:
+    folder_granularity: str = "week"
+
+
+@dataclass(frozen=True)
 class Config:
     drop_dir: Path
     samples_dir: Path
@@ -48,6 +53,7 @@ class Config:
     audio: AudioOptions
     launch: LaunchOptions
     notifications: NotificationOptions
+    organization: OrganizationOptions
 
     @classmethod
     def load(cls, path: Path) -> "Config":
@@ -56,6 +62,7 @@ class Config:
         audio = data.get("audio", {})
         launch = data.get("launch", {})
         notifications = data.get("notifications", {})
+        organization = data.get("organization", {})
 
         drop_dir = _expand_path(general.get("drop_dir", "~/SampleDrop"))
         samples_dir = _expand_path(general.get("samples_dir", "~/Samples"))
@@ -88,6 +95,11 @@ class Config:
             ),
             notifications=NotificationOptions(
                 enabled=bool(notifications.get("enabled", True)),
+            ),
+            organization=OrganizationOptions(
+                folder_granularity=_parse_folder_granularity(
+                    organization.get("folder_granularity", "week")
+                ),
             ),
         )
 
@@ -130,6 +142,9 @@ class Config:
                     "[notifications]",
                     f"enabled = {_toml_bool(self.notifications.enabled)}",
                     "",
+                    "[organization]",
+                    f'folder_granularity = "{_toml_string(self.organization.folder_granularity)}"',
+                    "",
                 ]
             )
         )
@@ -146,6 +161,13 @@ def _expand_optional_path(value: object) -> Path | None:
     if not text:
         return None
     return _expand_path(text)
+
+
+def _parse_folder_granularity(value: object) -> str:
+    granularity = str(value).strip().lower()
+    if granularity in {"none", "day", "week", "month"}:
+        return granularity
+    raise ValueError("organization.folder_granularity must be one of: none, day, week, month")
 
 
 def _toml_bool(value: bool) -> str:
